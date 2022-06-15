@@ -112,7 +112,7 @@ fn get_longitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32)
         + 0.0003 * deg2rad(161.0 + 40.7 * t).sin()
         + 0.0003 * deg2rad(280.0 + 23221.3 * t).sin();
 
-    lm + 720.0
+    adjust0to360(lm)
 }
 
 /**
@@ -120,4 +120,17 @@ fn get_longitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32)
  */
 fn deg2rad(deg: f64) -> f64 {
     deg * PI as f64 / 180.0
+}
+
+/**
+ * 0 <= x <= 360 に修正する
+ */
+fn adjust0to360(deg: f64) -> f64 {
+    let tmp = deg % 360.0;
+
+    if tmp < 0.0 {
+        tmp + 360.0
+    } else {
+        tmp
+    }
 }
