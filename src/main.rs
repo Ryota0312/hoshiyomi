@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 const ZONE_OFFSET: f64 = 0.0;
 
 fn main() {
-    println!("{}", get_longitude(1999, 11, 14, 0, 0, 0));
+    println!("{}", get_moon_longitude(1999, 11, 14, 0, 0, 0));
 }
 
 /**
@@ -39,7 +39,7 @@ fn j2000year(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> 
 /**
  * 月の黄経の近似計算
  */
-fn get_longitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
+fn get_moon_longitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
     let t = j2000year(year, month, day, hour, min, sec);
     let am = 0.0040 * deg2rad(119.5 + 1.33 * t).sin()
         + 0.0020 * deg2rad(55.0 + 19.34 * t).sin()
