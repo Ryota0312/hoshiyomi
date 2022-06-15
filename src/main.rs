@@ -6,6 +6,7 @@ fn main() {
     println!("{}", get_moon_longitude(1999, 11, 14, 0, 0, 0));
     println!("{}", get_moon_latitude(1999, 11, 14, 0, 0, 0));
     println!("{}", get_moon_parallax(1999, 11, 14, 0, 0, 0));
+    println!("{}", ecliptic_tilt_angle(1999, 11, 14, 0, 0, 0));
 }
 
 /**
@@ -196,6 +197,15 @@ fn get_moon_parallax(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: 
         + 0.0003 * deg2rad(227.0 + 4412.0 * t).sin();
 
     adjust0to360(p)
+}
+
+/**
+ * 黄道傾角
+ */
+fn ecliptic_tilt_angle(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
+    let t = j2000year(year, month, day, hour, min, sec);
+
+    adjust0to360(23.439291 - 0.000130042 * t)
 }
 
 /**
