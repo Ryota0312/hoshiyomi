@@ -200,6 +200,19 @@ fn get_moon_parallax(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: 
 }
 
 /**
+ * 黄道座標を赤道座標に変換
+ */
+fn ecliptic2equatorial(l: f64, b: f64, e: f64) -> f64 {
+    let u = b.cos() * l.cos();
+    let v = -b.sin() * e.sin() + b.cos() * l.sin() * e.cos();
+    let w = b.sin() * e.cos() + b.cos() * l.sin() * e.sin();
+
+    // TODO: return (a,d)
+    // tana = v / u'
+    // tand = w / sqrt(u^2 + v^2)
+}
+
+/**
  * 黄道傾角
  */
 fn ecliptic_tilt_angle(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
