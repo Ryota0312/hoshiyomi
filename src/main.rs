@@ -4,6 +4,7 @@ const ZONE_OFFSET: f64 = 0.0;
 
 fn main() {
     println!("{}", get_moon_longitude(1999, 11, 14, 0, 0, 0));
+    println!("{}", get_moon_latitude(1999, 11, 14, 0, 0, 0));
 }
 
 /**
@@ -113,6 +114,68 @@ fn get_moon_longitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec:
         + 0.0003 * deg2rad(280.0 + 23221.3 * t).sin();
 
     adjust0to360(lm)
+}
+
+/**
+ * 月の黄緯の近似計算
+ */
+fn get_moon_latitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
+    let t = j2000year(year, month, day, hour, min, sec);
+    let bm = 0.0267 * deg2rad(234.95 + 19.341 * t).sin()
+        + 0.0043 * deg2rad(322.1 + 19.36 * t).sin()
+        + 0.0040 * deg2rad(119.5 + 1.33 * t).sin()
+        + 0.0020 * deg2rad(55.0 + 19.34 * t).sin()
+        + 0.0005 * deg2rad(307.0 + 19.4 * t).sin();
+
+    let betam = 5.1282 * deg2rad(93.273 + 4832.0202 * t + bm).sin()
+        + 0.2806 * deg2rad(228.235 + 9604.0088 * t).sin()
+        + 0.2777 * deg2rad(138.311 + 60.0316 * t).sin()
+        + 0.1732 * deg2rad(142.427 + 4073.3220 * t).sin()
+        + 0.0554 * deg2rad(194.01 + 8965.374 * t).sin()
+        + 0.0463 * deg2rad(172.55 + 698.667 * t).sin()
+        + 0.0326 * deg2rad(328.96 + 13737.362 * t).sin()
+        + 0.0172 * deg2rad(3.18 + 14375.997 * t).sin()
+        + 0.0093 * deg2rad(277.4 + 8845.31 * t).sin()
+        + 0.0088 * deg2rad(176.7 + 4711.96 * t).sin()
+        + 0.0082 * deg2rad(144.9 + 3713.33 * t).sin()
+        + 0.0043 * deg2rad(307.6 + 5470.66 * t).sin()
+        + 0.0042 * deg2rad(103.9 + 18509.35 * t).sin()
+        + 0.0034 * deg2rad(319.9 + 4433.31 * t).sin()
+        + 0.0025 * deg2rad(196.5 + 8605.38 * t).sin()
+        + 0.0022 * deg2rad(331.4 + 13377.37 * t).sin()
+        + 0.0021 * deg2rad(170.1 + 1058.66 * t).sin()
+        + 0.0019 * deg2rad(230.7 + 9244.02 * t).sin()
+        + 0.0018 * deg2rad(243.3 + 8206.68 * t).sin()
+        + 0.0018 * deg2rad(270.8 + 5192.01 * t).sin()
+        + 0.0017 * deg2rad(99.8 + 14496.06 * t).sin()
+        + 0.0016 * deg2rad(135.7 + 420.02 * t).sin()
+        + 0.0015 * deg2rad(211.1 + 9284.69 * t).sin()
+        + 0.0015 * deg2rad(45.8 + 9964.00 * t).sin()
+        + 0.0014 * deg2rad(219.2 + 299.96 * t).sin()
+        + 0.0013 * deg2rad(95.8 + 4472.03 * t).sin()
+        + 0.0013 * deg2rad(155.4 + 379.35 * t).sin()
+        + 0.0012 * deg2rad(38.4 + 4812.68 * t).sin()
+        + 0.0012 * deg2rad(148.2 + 4851.36 * t).sin()
+        + 0.0011 * deg2rad(138.3 + 19147.99 * t).sin()
+        + 0.0010 * deg2rad(18.0 + 12978.66 * t).sin()
+        + 0.0008 * deg2rad(70.0 + 17870.7 * t).sin()
+        + 0.0008 * deg2rad(326.0 + 9724.1 * t).sin()
+        + 0.0007 * deg2rad(294.0 + 13098.7 * t).sin()
+        + 0.0006 * deg2rad(224.0 + 5590.7 * t).sin()
+        + 0.0006 * deg2rad(52.0 + 13617.3 * t).sin()
+        + 0.0005 * deg2rad(280.0 + 8485.3 * t).sin()
+        + 0.0005 * deg2rad(239.0 + 4193.4 * t).sin()
+        + 0.0004 * deg2rad(311.0 + 9483.9 * t).sin()
+        + 0.0004 * deg2rad(238.0 + 23281.3 * t).sin()
+        + 0.0004 * deg2rad(81.0 + 10242.6 * t).sin()
+        + 0.0004 * deg2rad(13.0 + 9325.4 * t).sin()
+        + 0.0004 * deg2rad(147.0 + 14097.4 * t).sin()
+        + 0.0003 * deg2rad(205.0 + 22642.7 * t).sin()
+        + 0.0003 * deg2rad(107.0 + 18149.4 * t).sin()
+        + 0.0003 * deg2rad(146.0 + 3353.3 * t).sin()
+        + 0.0003 * deg2rad(234.0 + 19268.0 * t).sin();
+
+    adjust0to360(betam)
 }
 
 /**
