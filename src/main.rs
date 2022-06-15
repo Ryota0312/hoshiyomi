@@ -5,6 +5,7 @@ const ZONE_OFFSET: f64 = 0.0;
 fn main() {
     println!("{}", get_moon_longitude(1999, 11, 14, 0, 0, 0));
     println!("{}", get_moon_latitude(1999, 11, 14, 0, 0, 0));
+    println!("{}", get_moon_parallax(1999, 11, 14, 0, 0, 0));
 }
 
 /**
@@ -176,6 +177,25 @@ fn get_moon_latitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: 
         + 0.0003 * deg2rad(234.0 + 19268.0 * t).sin();
 
     adjust0to360(betam)
+}
+
+/**
+ * 月の視差を近似計算
+ */
+fn get_moon_parallax(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
+    let t = j2000year(year, month, day, hour, min, sec);
+
+    let p = 0.9507 * deg2rad(90.0).sin()
+        + 0.0518 * deg2rad(224.98 + 4771.989 * t).sin()
+        + 0.0095 * deg2rad(190.7 + 4133.35 * t).sin()
+        + 0.0078 * deg2rad(325.7 + 8905.34 * t).sin()
+        + 0.0028 * deg2rad(0.0 + 9543.98 * t).sin()
+        + 0.0009 * deg2rad(100.0 + 13677.3 + t).sin()
+        + 0.0005 * deg2rad(329.0 + 8545.4 * t).sin()
+        + 0.0004 * deg2rad(194.0 + 3773.4 * t).sin()
+        + 0.0003 * deg2rad(227.0 + 4412.0 * t).sin();
+
+    adjust0to360(p)
 }
 
 /**
