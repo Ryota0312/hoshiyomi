@@ -34,14 +34,6 @@ fn main() {
     println!("Local.datetime_from_str: {:?}", d);
     let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
 
-    // let moon_ecliptic = get_moon_ecliptic(dt.unwrap());
-    // println!("moon_parallax: {}", get_moon_parallax(dt.unwrap()));
-    // let tilt_angle = ecliptic_tilt_angle(dt.unwrap());
-    // println!("tilt: {}", tilt_angle);
-    // let equatorial = ecliptic2equatorial(moon_ecliptic, tilt_angle);
-    // println!("{}", equatorial.longitude);
-    // println!("{}", equatorial.latitude);
-
     let d = get_moon_rise(d, geocode);
     let moon_rise = Utc.timestamp(dt.unwrap().timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
     println!("Result: {:?}", moon_rise);
