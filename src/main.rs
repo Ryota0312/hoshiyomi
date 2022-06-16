@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
-use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike, Date};
+use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike, Date, FixedOffset};
 
-const ZONE_OFFSET: f64 = 9.0;
+const ZONE_OFFSET: f64 = 0.0;
 const R: f64 = 0.585556;
 
 /**
@@ -29,13 +29,14 @@ struct Equatorial {
 }
 
 fn main() {
-    let dt: Result<DateTime<Utc>, _> = Utc.datetime_from_str("1999/11/14 00:00:00", "%Y/%m/%d %H:%M:%S");
-    let d = dt.unwrap().date();
-    println!("Local.datetime_from_str: {:?}", d);
-    let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
+    let today = Utc.datetime_from_str("2022/06/17 00:00:00", "%Y/%m/%d %H:%M:%S").unwrap().date();
+    //let today = Utc.datetime_from_str("1999/11/14 00:00:00", "%Y/%m/%d %H:%M:%S").unwrap().date();
+    // let today = Utc::today();
+    println!("Local.datetime_from_str: {:?}", today);
+    let geocode = Geocode { longitude: 139.539242, latitude: 35.686991 };
 
-    let d = get_moon_rise(d, geocode);
-    let moon_rise = Utc.timestamp(dt.unwrap().timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+    let d = get_moon_rise(today, geocode);
+    let moon_rise = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0).with_timezone(&FixedOffset::east((0.0*3600.0) as i32));
     println!("Result: {:?}", moon_rise);
 }
 
@@ -45,9 +46,10 @@ fn get_moon_rise(date: Date<Utc>, geocode: Geocode) -> f64 {
     let mut delta_d = 0.0;
     let mut d = 0.5;
 
+    let datetime_hms0 = date.and_hms(0, 0, 0);
+
     loop {
         d += delta_d;
-        let datetime_hms0 = date.and_hms(0, 0, 0);
         let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
 
         let moon_parallax = get_moon_parallax(tmp_datetime);
@@ -64,14 +66,15 @@ fn get_moon_rise(date: Date<Utc>, geocode: Geocode) -> f64 {
         println!("tk: {}", tk);
         let t = get_sidereal_time(d) - moon_equatorial.longitude;
         println!("t: {}", t);
-        delta_d = (tk - t) / 347.8;
+        delta_d = adjust180abs(tk - t) / 347.8;
         println!("delta_d: {}", delta_d);
+        println!("d: {}", d);
         if delta_d.abs() < THRESHOLD_DELTA_D {
             break;
         }
     }
 
-    d
+    d + delta_d
 }
 
 /**
@@ -293,7 +296,12 @@ fn ecliptic2equatorial(ecliptic: Ecliptic, e: f64) -> Equatorial {
     let v = -deg2rad(ecliptic.latitude).sin() * deg2rad(e).sin() + deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).sin() * deg2rad(e).cos();
     let w = deg2rad(ecliptic.latitude).sin() * deg2rad(e).cos() + deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).sin() * deg2rad(e).sin();
 
-    let a = adjust0to360(rad2deg((v / u).atan()));
+    let a;
+    if u < 0.0 {
+        a = adjust0to360(rad2deg((v / u).atan()) + 180.0);
+    } else {
+        a = adjust0to360(rad2deg((v / u).atan()));
+    }
     let d = rad2deg((w / (u.powi(2) + v.powi(2)).sqrt()).atan());
     Equatorial { longitude: a, latitude: d }
 }
@@ -331,5 +339,16 @@ fn adjust0to360(deg: f64) -> f64 {
         tmp + 360.0
     } else {
         tmp
+    }
+}
+
+/**
+ * -180 <= x <= 180 に修正する
+ */
+fn adjust180abs(deg: f64) -> f64 {
+    if deg > 180.0 {
+        deg - 360.0
+    } else if deg < -180.0 { deg + 360.0 } else {
+        deg
     }
 }
