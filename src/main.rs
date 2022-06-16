@@ -1,6 +1,16 @@
 use std::f32::consts::PI;
+use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike};
 
 const ZONE_OFFSET: f64 = 0.0;
+const R: f64 = 0.585556;
+
+/**
+ * 座標
+ */
+struct Geocode {
+    longitude: f64,
+    latitude: f64,
+}
 
 /**
  * 黄道座標
@@ -19,19 +29,35 @@ struct Equatorial {
 }
 
 fn main() {
-    let moon_ecliptic = get_moon_ecliptic(1999, 11, 14, 0, 0, 0);
-    println!("moon_parallax: {}", get_moon_parallax(1999, 11, 14, 0, 0, 0));
-    let tilt_angle = ecliptic_tilt_angle(1999, 11, 14, 0, 0, 0);
+    let dt: Result<DateTime<Utc>, _> = Utc.datetime_from_str("1999/11/14 00:00:00", "%Y/%m/%d %H:%M:%S");
+    println!("Local.datetime_from_str: {:?}", dt);
+
+    let moon_ecliptic = get_moon_ecliptic(dt.unwrap());
+    println!("moon_parallax: {}", get_moon_parallax(dt.unwrap()));
+    let tilt_angle = ecliptic_tilt_angle(dt.unwrap());
     println!("tilt: {}", tilt_angle);
     let equatorial = ecliptic2equatorial(moon_ecliptic, tilt_angle);
     println!("{}", equatorial.longitude);
     println!("{}", equatorial.latitude);
 }
 
+// fn get_moon_rise(year: i32, month: i32, day: i32, geocode: Geocode) -> f64 {
+//     let mut d = 0.5;
+//     get_moon_parallax(year, month, day, 0, 0, 0)
+//     //let k = -R +
+// }
+
 /**
  * year年month月day日0時のJ2000.0(2000年１月１日力学時正午)からの経過日数
  */
-fn j2000day(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
+fn j2000day(datetime: DateTime<Utc>) -> f64 {
+    let year = datetime.year();
+    let month = datetime.month();
+    let day = datetime.day();
+    let hour = datetime.hour();
+    let min = datetime.minute();
+    let sec = datetime.second();
+
     let mut fixed_year = (year - 2000) as f64;
     let mut fixed_month = month as f64;
     let fixed_day = day as f64;
@@ -54,22 +80,22 @@ fn j2000day(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f
 /**
  * year年month月day日0時のJ2000.0(2000年１月１日力学時正午)からの経過年数
  */
-fn j2000year(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
-    j2000day(year, month, day, hour, min, sec) / 365.25
+fn j2000year(datetime: DateTime<Utc>) -> f64 {
+    j2000day(datetime) / 365.25
 }
 
 /**
  * 月の黄道座標
  */
-fn get_moon_ecliptic(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> Ecliptic {
-    Ecliptic { longitude: get_moon_longitude(year, month, day, hour, min, sec), latitude: get_moon_latitude(year, month, day, hour, min, sec) }
+fn get_moon_ecliptic(datetime: DateTime<Utc>) -> Ecliptic {
+    Ecliptic { longitude: get_moon_longitude(datetime), latitude: get_moon_latitude(datetime) }
 }
 
 /**
  * 月の黄経の近似計算
  */
-fn get_moon_longitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
-    let t = j2000year(year, month, day, hour, min, sec);
+fn get_moon_longitude(datetime: DateTime<Utc>) -> f64 {
+    let t = j2000year(datetime);
     let am = 0.0040 * deg2rad(119.5 + 1.33 * t).sin()
         + 0.0020 * deg2rad(55.0 + 19.34 * t).sin()
         + 0.0006 * deg2rad(71.0 + 0.2 * t).sin()
@@ -147,8 +173,8 @@ fn get_moon_longitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec:
 /**
  * 月の黄緯の近似計算
  */
-fn get_moon_latitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
-    let t = j2000year(year, month, day, hour, min, sec);
+fn get_moon_latitude(datetime: DateTime<Utc>) -> f64 {
+    let t = j2000year(datetime);
     let bm = 0.0267 * deg2rad(234.95 + 19.341 * t).sin()
         + 0.0043 * deg2rad(322.1 + 19.36 * t).sin()
         + 0.0040 * deg2rad(119.5 + 1.33 * t).sin()
@@ -209,8 +235,8 @@ fn get_moon_latitude(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: 
 /**
  * 月の視差を近似計算
  */
-fn get_moon_parallax(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
-    let t = j2000year(year, month, day, hour, min, sec);
+fn get_moon_parallax(datetime: DateTime<Utc>) -> f64 {
+    let t = j2000year(datetime);
 
     let p = 0.9507 * deg2rad(90.0).sin()
         + 0.0518 * deg2rad(224.98 + 4771.989 * t).sin()
@@ -241,8 +267,8 @@ fn ecliptic2equatorial(ecliptic: Ecliptic, e: f64) -> Equatorial {
 /**
  * 黄道傾角
  */
-fn ecliptic_tilt_angle(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
-    let t = j2000year(year, month, day, hour, min, sec);
+fn ecliptic_tilt_angle(datetime: DateTime<Utc>) -> f64 {
+    let t = j2000year(datetime);
 
     adjust0to360(23.439291 - 0.000130042 * t)
 }
