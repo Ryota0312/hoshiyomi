@@ -42,19 +42,51 @@ fn main() {
     // println!("{}", equatorial.longitude);
     // println!("{}", equatorial.latitude);
 
-    get_moon_rise(d, geocode);
+    let d = get_moon_rise(d, geocode);
+    let moon_rise = Utc.timestamp(dt.unwrap().timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+    println!("Result: {:?}", moon_rise);
 }
 
-fn get_moon_rise(date: Date<Utc>, geocode: Geocode) {
-    let mut d = 0.5;
-    let datetime_hms0 = date.and_hms(0, 0, 0);
-    let moon_parallax = get_moon_parallax(datetime_hms0);
+fn get_moon_rise(date: Date<Utc>, geocode: Geocode) -> f64 {
+    const THRESHOLD_DELTA_D: f64 = 0.000005;
 
-    let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
-    let moon_ecliptic = ecliptic2equatorial(get_moon_ecliptic(tmp_datetime), ecliptic_tilt_angle(datetime_hms0));
-    println!("{}", moon_ecliptic.longitude);
-    println!("{}", moon_ecliptic.latitude);
-    //let k = -R +
+    let mut delta_d = 0.0;
+    let mut d = 0.5;
+
+    loop {
+        d += delta_d;
+        let datetime_hms0 = date.and_hms(0, 0, 0);
+        let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+
+        let moon_parallax = get_moon_parallax(tmp_datetime);
+
+        let moon_equatorial = ecliptic2equatorial(get_moon_ecliptic(tmp_datetime), ecliptic_tilt_angle(datetime_hms0));
+        println!("{}", moon_equatorial.longitude);
+        println!("{}", moon_equatorial.latitude);
+        let k = -R + moon_parallax;
+        println!("k: {}", k);
+        let cos_tk = (deg2rad(k).sin() - deg2rad(moon_equatorial.latitude).sin() * deg2rad(geocode.latitude).sin())
+            / (deg2rad(moon_equatorial.latitude).cos() * deg2rad(geocode.latitude).cos());
+        println!("cos_tk: {}", cos_tk);
+        let tk = -rad2deg(cos_tk.acos());
+        println!("tk: {}", tk);
+        let t = get_sidereal_time(d) - moon_equatorial.longitude;
+        println!("t: {}", t);
+        delta_d = (tk - t) / 347.8;
+        println!("delta_d: {}", delta_d);
+        if delta_d.abs() < THRESHOLD_DELTA_D {
+            break;
+        }
+    }
+
+    d
+}
+
+/**
+ * 恒星時
+ */
+fn get_sidereal_time(d: f64) -> f64 {
+    57.027999 + 360.985647 * d
 }
 
 /**
