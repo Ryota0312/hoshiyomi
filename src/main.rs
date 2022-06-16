@@ -2,15 +2,30 @@ use std::f32::consts::PI;
 
 const ZONE_OFFSET: f64 = 0.0;
 
+/**
+ * 黄道座標
+ */
+struct Ecliptic {
+    longitude: f64,
+    latitude: f64,
+}
+
+/**
+ * 赤道座標
+ */
+struct Equatorial {
+    longitude: f64,
+    latitude: f64,
+}
+
 fn main() {
-    let moon_longitude = get_moon_longitude(1999, 11, 14, 0, 0, 0);
-    println!("{}", moon_longitude);
-    let moon_latitude = get_moon_latitude(1999, 11, 14, 0, 0, 0);
-    println!("{}", moon_latitude);
-    println!("{}", get_moon_parallax(1999, 11, 14, 0, 0, 0));
+    let moon_ecliptic = get_moon_ecliptic(1999, 11, 14, 0, 0, 0);
+    println!("moon_parallax: {}", get_moon_parallax(1999, 11, 14, 0, 0, 0));
     let tilt_angle = ecliptic_tilt_angle(1999, 11, 14, 0, 0, 0);
-    println!("{}", tilt_angle);
-    println!("{}", ecliptic2equatorial(moon_longitude, moon_latitude, tilt_angle));
+    println!("tilt: {}", tilt_angle);
+    let equatorial = ecliptic2equatorial(moon_ecliptic, tilt_angle);
+    println!("{}", equatorial.longitude);
+    println!("{}", equatorial.latitude);
 }
 
 /**
@@ -41,6 +56,13 @@ fn j2000day(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f
  */
 fn j2000year(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> f64 {
     j2000day(year, month, day, hour, min, sec) / 365.25
+}
+
+/**
+ * 月の黄道座標
+ */
+fn get_moon_ecliptic(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: i32) -> Ecliptic {
+    Ecliptic { longitude: get_moon_longitude(year, month, day, hour, min, sec), latitude: get_moon_latitude(year, month, day, hour, min, sec) }
 }
 
 /**
@@ -206,23 +228,14 @@ fn get_moon_parallax(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: 
 /**
  * 黄道座標を赤道座標に変換
  */
-fn ecliptic2equatorial(l: f64, b: f64, e: f64) -> f64 {
-    println!("l: {}", l);
-    println!("b: {}", b);
-    println!("e: {}", e);
-    let u = deg2rad(b).cos() * deg2rad(l).cos();
-    let v = -deg2rad(b).sin() * deg2rad(e).sin() + deg2rad(b).cos() * deg2rad(l).sin() * deg2rad(e).cos();
-    let w = deg2rad(b).sin() * deg2rad(e).cos() + deg2rad(b).cos() * deg2rad(l).sin() * deg2rad(e).sin();
-    println!("u: {}", u);
-    println!("v: {}", v);
-    println!("w: {}", w);
+fn ecliptic2equatorial(ecliptic: Ecliptic, e: f64) -> Equatorial {
+    let u = deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).cos();
+    let v = -deg2rad(ecliptic.latitude).sin() * deg2rad(e).sin() + deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).sin() * deg2rad(e).cos();
+    let w = deg2rad(ecliptic.latitude).sin() * deg2rad(e).cos() + deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).sin() * deg2rad(e).sin();
 
-    // TODO: return (a,d)
-    // tana = v / u'
-    let a = (v / u).atan();
-    // tand = w / sqrt(u^2 + v^2)
-    let d = (w / (u.powi(2) + v.powi(2)).sqrt()).atan();
-    d
+    let a = adjust0to360(rad2deg((v / u).atan()));
+    let d = rad2deg((w / (u.powi(2) + v.powi(2)).sqrt()).atan());
+    Equatorial { longitude: a, latitude: d }
 }
 
 /**
@@ -239,6 +252,13 @@ fn ecliptic_tilt_angle(year: i32, month: i32, day: i32, hour: i32, min: i32, sec
  */
 fn deg2rad(deg: f64) -> f64 {
     deg * PI as f64 / 180.0
+}
+
+/**
+ * 弧度法から度数法への変換
+ */
+fn rad2deg(rad: f64) -> f64 {
+    rad * 180.0 / PI as f64
 }
 
 /**
