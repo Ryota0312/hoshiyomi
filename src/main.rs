@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
-use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike};
+use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike, Date};
 
-const ZONE_OFFSET: f64 = 0.0;
+const ZONE_OFFSET: f64 = 9.0;
 const R: f64 = 0.585556;
 
 /**
@@ -30,22 +30,32 @@ struct Equatorial {
 
 fn main() {
     let dt: Result<DateTime<Utc>, _> = Utc.datetime_from_str("1999/11/14 00:00:00", "%Y/%m/%d %H:%M:%S");
-    println!("Local.datetime_from_str: {:?}", dt);
+    let d = dt.unwrap().date();
+    println!("Local.datetime_from_str: {:?}", d);
+    let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
 
-    let moon_ecliptic = get_moon_ecliptic(dt.unwrap());
-    println!("moon_parallax: {}", get_moon_parallax(dt.unwrap()));
-    let tilt_angle = ecliptic_tilt_angle(dt.unwrap());
-    println!("tilt: {}", tilt_angle);
-    let equatorial = ecliptic2equatorial(moon_ecliptic, tilt_angle);
-    println!("{}", equatorial.longitude);
-    println!("{}", equatorial.latitude);
+    // let moon_ecliptic = get_moon_ecliptic(dt.unwrap());
+    // println!("moon_parallax: {}", get_moon_parallax(dt.unwrap()));
+    // let tilt_angle = ecliptic_tilt_angle(dt.unwrap());
+    // println!("tilt: {}", tilt_angle);
+    // let equatorial = ecliptic2equatorial(moon_ecliptic, tilt_angle);
+    // println!("{}", equatorial.longitude);
+    // println!("{}", equatorial.latitude);
+
+    get_moon_rise(d, geocode);
 }
 
-// fn get_moon_rise(year: i32, month: i32, day: i32, geocode: Geocode) -> f64 {
-//     let mut d = 0.5;
-//     get_moon_parallax(year, month, day, 0, 0, 0)
-//     //let k = -R +
-// }
+fn get_moon_rise(date: Date<Utc>, geocode: Geocode) {
+    let mut d = 0.5;
+    let datetime_hms0 = date.and_hms(0, 0, 0);
+    let moon_parallax = get_moon_parallax(datetime_hms0);
+
+    let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+    let moon_ecliptic = ecliptic2equatorial(get_moon_ecliptic(tmp_datetime), ecliptic_tilt_angle(datetime_hms0));
+    println!("{}", moon_ecliptic.longitude);
+    println!("{}", moon_ecliptic.latitude);
+    //let k = -R +
+}
 
 /**
  * year年month月day日0時のJ2000.0(2000年１月１日力学時正午)からの経過日数
