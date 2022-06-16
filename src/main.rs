@@ -3,10 +3,14 @@ use std::f32::consts::PI;
 const ZONE_OFFSET: f64 = 0.0;
 
 fn main() {
-    println!("{}", get_moon_longitude(1999, 11, 14, 0, 0, 0));
-    println!("{}", get_moon_latitude(1999, 11, 14, 0, 0, 0));
+    let moon_longitude = get_moon_longitude(1999, 11, 14, 0, 0, 0);
+    println!("{}", moon_longitude);
+    let moon_latitude = get_moon_latitude(1999, 11, 14, 0, 0, 0);
+    println!("{}", moon_latitude);
     println!("{}", get_moon_parallax(1999, 11, 14, 0, 0, 0));
-    println!("{}", ecliptic_tilt_angle(1999, 11, 14, 0, 0, 0));
+    let tilt_angle = ecliptic_tilt_angle(1999, 11, 14, 0, 0, 0);
+    println!("{}", tilt_angle);
+    println!("{}", ecliptic2equatorial(moon_longitude, moon_latitude, tilt_angle));
 }
 
 /**
@@ -203,13 +207,22 @@ fn get_moon_parallax(year: i32, month: i32, day: i32, hour: i32, min: i32, sec: 
  * 黄道座標を赤道座標に変換
  */
 fn ecliptic2equatorial(l: f64, b: f64, e: f64) -> f64 {
-    let u = b.cos() * l.cos();
-    let v = -b.sin() * e.sin() + b.cos() * l.sin() * e.cos();
-    let w = b.sin() * e.cos() + b.cos() * l.sin() * e.sin();
+    println!("l: {}", l);
+    println!("b: {}", b);
+    println!("e: {}", e);
+    let u = deg2rad(b).cos() * deg2rad(l).cos();
+    let v = -deg2rad(b).sin() * deg2rad(e).sin() + deg2rad(b).cos() * deg2rad(l).sin() * deg2rad(e).cos();
+    let w = deg2rad(b).sin() * deg2rad(e).cos() + deg2rad(b).cos() * deg2rad(l).sin() * deg2rad(e).sin();
+    println!("u: {}", u);
+    println!("v: {}", v);
+    println!("w: {}", w);
 
     // TODO: return (a,d)
     // tana = v / u'
+    let a = (v / u).atan();
     // tand = w / sqrt(u^2 + v^2)
+    let d = (w / (u.powi(2) + v.powi(2)).sqrt()).atan();
+    d
 }
 
 /**
