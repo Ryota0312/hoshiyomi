@@ -349,9 +349,15 @@ fn adjust0to360(deg: f64) -> f64 {
  * -180 <= x <= 180 に修正する
  */
 fn adjust180abs(deg: f64) -> f64 {
-    if deg > 180.0 {
-        deg - 360.0
-    } else if deg < -180.0 { deg + 360.0 } else {
-        deg
+    let mut result= deg;
+    loop {
+        if result > 180.0 {
+            result -= 360.0;
+        } else if result < -180.0 {
+            result += 360.0;
+        } else {
+            break;
+        }
     }
+    result
 }
