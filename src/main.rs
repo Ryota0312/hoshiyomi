@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
-use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike, Date, FixedOffset};
+use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike, Date, FixedOffset, NaiveDate, NaiveDateTime};
 
-const ZONE_OFFSET: f64 = 0.0;
+const ZONE_OFFSET: f64 = 9.0;
 const R: f64 = 0.585556;
 
 /**
@@ -29,18 +29,20 @@ struct Equatorial {
 }
 
 fn main() {
-    let today = Utc.datetime_from_str("2022/06/17 00:00:00", "%Y/%m/%d %H:%M:%S").unwrap().date();
-    //let today = Utc.datetime_from_str("1999/11/14 00:00:00", "%Y/%m/%d %H:%M:%S").unwrap().date();
+    //let today = Utc.datetime_from_str("2022/06/28 00:00:00", "%Y/%m/%d %H:%M:%S").unwrap().date().with_timezone(&FixedOffset::east((ZONE_OFFSET*3600.0) as i32));
+    //let today = Utc.datetime_from_str("1999/11/14 00:00:00", "%Y/%m/%d %H:%M:%S").unwrap().date().with_timezone(&FixedOffset::east((ZONE_OFFSET*3600.0) as i32));
+    let today = NaiveDate::from_ymd(1999, 11, 14);
     // let today = Utc::today();
     println!("Local.datetime_from_str: {:?}", today);
-    let geocode = Geocode { longitude: 139.539242, latitude: 35.686991 };
+    //let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
+    let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
 
     let d = get_moon_rise(today, geocode);
-    let moon_rise = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0).with_timezone(&FixedOffset::east((0.0*3600.0) as i32));
+    let moon_rise = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
     println!("Result: {:?}", moon_rise);
 }
 
-fn get_moon_rise(date: Date<Utc>, geocode: Geocode) -> f64 {
+fn get_moon_rise(date: NaiveDate, geocode: Geocode) -> f64 {
     const THRESHOLD_DELTA_D: f64 = 0.000005;
 
     let mut delta_d = 0.0;
@@ -50,13 +52,14 @@ fn get_moon_rise(date: Date<Utc>, geocode: Geocode) -> f64 {
 
     loop {
         d += delta_d;
-        let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+        //let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+        let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0).naive_utc();
 
         let moon_parallax = get_moon_parallax(tmp_datetime);
 
         let moon_equatorial = ecliptic2equatorial(get_moon_ecliptic(tmp_datetime), ecliptic_tilt_angle(datetime_hms0));
-        println!("{}", moon_equatorial.longitude);
-        println!("{}", moon_equatorial.latitude);
+        println!("a: {}", moon_equatorial.longitude);
+        println!("d: {}", moon_equatorial.latitude);
         let k = -R + moon_parallax;
         println!("k: {}", k);
         let cos_tk = (deg2rad(k).sin() - deg2rad(moon_equatorial.latitude).sin() * deg2rad(geocode.latitude).sin())
@@ -64,11 +67,12 @@ fn get_moon_rise(date: Date<Utc>, geocode: Geocode) -> f64 {
         println!("cos_tk: {}", cos_tk);
         let tk = -rad2deg(cos_tk.acos());
         println!("tk: {}", tk);
-        let t = get_sidereal_time(d) - moon_equatorial.longitude;
+        let t = get_sidereal_time(datetime_hms0) + 360.9856474 * d + geocode.longitude - moon_equatorial.longitude;
         println!("t: {}", t);
         delta_d = adjust180abs(tk - t) / 347.8;
         println!("delta_d: {}", delta_d);
         println!("d: {}", d);
+        println!("======================");
         if delta_d.abs() < THRESHOLD_DELTA_D {
             break;
         }
@@ -80,14 +84,16 @@ fn get_moon_rise(date: Date<Utc>, geocode: Geocode) -> f64 {
 /**
  * 恒星時
  */
-fn get_sidereal_time(d: f64) -> f64 {
-    57.027999 + 360.985647 * d
+fn get_sidereal_time(datetime: NaiveDateTime) -> f64 {
+    //57.027999 + 360.985647 * d
+    let jd = j2000year(datetime);
+    100.4606 + 360.007700536 * jd + 0.00000003879 * jd.powi(2) - 15.0 * ZONE_OFFSET
 }
 
 /**
  * year年month月day日0時のJ2000.0(2000年１月１日力学時正午)からの経過日数
  */
-fn j2000day(datetime: DateTime<Utc>) -> f64 {
+fn j2000day(datetime: NaiveDateTime) -> f64 {
     let year = datetime.year();
     let month = datetime.month();
     let day = datetime.day();
@@ -106,8 +112,9 @@ fn j2000day(datetime: DateTime<Utc>) -> f64 {
 
     // 地球の自転遅れ補正
     let rotate_rev = (57.0 + 0.8 * (year as f64 - 1990.0)) / 86400.0;
+    //let rotate_rev = 64.0 / 86400.0;
 
-    365.0 * fixed_year + 30.0 * fixed_month + fixed_day - 33.5 - (ZONE_OFFSET / 24.0)
+    365.0 * fixed_year + 30.0 * fixed_month + fixed_day - 33.5 - (ZONE_OFFSET as f64 / 24.0)
         + (3.0 * (fixed_month + 1.0) / 5.0).floor()
         + (fixed_year / 4.0).floor()
         + t
@@ -117,21 +124,21 @@ fn j2000day(datetime: DateTime<Utc>) -> f64 {
 /**
  * year年month月day日0時のJ2000.0(2000年１月１日力学時正午)からの経過年数
  */
-fn j2000year(datetime: DateTime<Utc>) -> f64 {
+fn j2000year(datetime: NaiveDateTime) -> f64 {
     j2000day(datetime) / 365.25
 }
 
 /**
  * 月の黄道座標
  */
-fn get_moon_ecliptic(datetime: DateTime<Utc>) -> Ecliptic {
+fn get_moon_ecliptic(datetime: NaiveDateTime) -> Ecliptic {
     Ecliptic { longitude: get_moon_longitude(datetime), latitude: get_moon_latitude(datetime) }
 }
 
 /**
  * 月の黄経の近似計算
  */
-fn get_moon_longitude(datetime: DateTime<Utc>) -> f64 {
+fn get_moon_longitude(datetime: NaiveDateTime) -> f64 {
     let t = j2000year(datetime);
     let am = 0.0040 * deg2rad(119.5 + 1.33 * t).sin()
         + 0.0020 * deg2rad(55.0 + 19.34 * t).sin()
@@ -210,7 +217,7 @@ fn get_moon_longitude(datetime: DateTime<Utc>) -> f64 {
 /**
  * 月の黄緯の近似計算
  */
-fn get_moon_latitude(datetime: DateTime<Utc>) -> f64 {
+fn get_moon_latitude(datetime: NaiveDateTime) -> f64 {
     let t = j2000year(datetime);
     let bm = 0.0267 * deg2rad(234.95 + 19.341 * t).sin()
         + 0.0043 * deg2rad(322.1 + 19.36 * t).sin()
@@ -272,7 +279,7 @@ fn get_moon_latitude(datetime: DateTime<Utc>) -> f64 {
 /**
  * 月の視差を近似計算
  */
-fn get_moon_parallax(datetime: DateTime<Utc>) -> f64 {
+fn get_moon_parallax(datetime: NaiveDateTime) -> f64 {
     let t = j2000year(datetime);
 
     let p = 0.9507 * deg2rad(90.0).sin()
@@ -309,7 +316,7 @@ fn ecliptic2equatorial(ecliptic: Ecliptic, e: f64) -> Equatorial {
 /**
  * 黄道傾角
  */
-fn ecliptic_tilt_angle(datetime: DateTime<Utc>) -> f64 {
+fn ecliptic_tilt_angle(datetime: NaiveDateTime) -> f64 {
     let t = j2000year(datetime);
 
     adjust0to360(23.439291 - 0.000130042 * t)
