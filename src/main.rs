@@ -35,11 +35,11 @@ enum MoonCalcMode {
 }
 
 fn main() {
-    let today = NaiveDate::from_ymd(1999, 11, 14);
+    let today = NaiveDate::from_ymd(2022, 6, 20);
 
     println!("Local.datetime_from_str: {:?}", today);
-    //let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
-    let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
+    let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
+    //let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
 
     let d = get_moon_rise_set(today, &geocode, RISE);
     let moon_rise = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
@@ -119,6 +119,7 @@ fn j2000day(datetime: NaiveDateTime) -> f64 {
     }
     let t = (hour as f64 * 60.0 * 60.0 + min as f64 * 60.0 + sec as f64) / 86400.0;
 
+    // FIXME: 自転遅れの計算がこれだと2018年の69秒と一致しないので最新のトレンドで計算する必要がある
     // 地球の自転遅れ補正
     let rotate_rev = (57.0 + 0.8 * (year as f64 - 1990.0)) / 86400.0;
     //let rotate_rev = 64.0 / 86400.0;
