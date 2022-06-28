@@ -29,10 +29,8 @@ struct Equatorial {
 }
 
 fn main() {
-    //let today = Utc.datetime_from_str("2022/06/28 00:00:00", "%Y/%m/%d %H:%M:%S").unwrap().date().with_timezone(&FixedOffset::east((ZONE_OFFSET*3600.0) as i32));
-    //let today = Utc.datetime_from_str("1999/11/14 00:00:00", "%Y/%m/%d %H:%M:%S").unwrap().date().with_timezone(&FixedOffset::east((ZONE_OFFSET*3600.0) as i32));
     let today = NaiveDate::from_ymd(1999, 11, 14);
-    // let today = Utc::today();
+
     println!("Local.datetime_from_str: {:?}", today);
     //let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
     let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
@@ -52,7 +50,6 @@ fn get_moon_rise(date: NaiveDate, geocode: Geocode) -> f64 {
 
     loop {
         d += delta_d;
-        //let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
         let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0).naive_utc();
 
         let moon_parallax = get_moon_parallax(tmp_datetime);
@@ -82,10 +79,9 @@ fn get_moon_rise(date: NaiveDate, geocode: Geocode) -> f64 {
 }
 
 /**
- * 恒星時
+ * UTC0時のグリニッジ恒星時
  */
 fn get_sidereal_time(datetime: NaiveDateTime) -> f64 {
-    //57.027999 + 360.985647 * d
     let jd = j2000year(datetime);
     100.4606 + 360.007700536 * jd + 0.00000003879 * jd.powi(2) - 15.0 * ZONE_OFFSET
 }
