@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike, Date, FixedOffset, NaiveDate, NaiveDateTime};
+use crate::MoonCalcMode::{RISE, SET};
 
 const ZONE_OFFSET: f64 = 9.0;
 const R: f64 = 0.585556;
@@ -28,6 +29,11 @@ struct Equatorial {
     latitude: f64,
 }
 
+enum MoonCalcMode {
+    RISE,
+    SET,
+}
+
 fn main() {
     let today = NaiveDate::from_ymd(1999, 11, 14);
 
@@ -35,12 +41,16 @@ fn main() {
     //let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
     let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
 
-    let d = get_moon_rise(today, geocode);
+    let d = get_moon_rise_set(today, &geocode, RISE);
     let moon_rise = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
-    println!("Result: {:?}", moon_rise);
+    println!("Moon Rise: {:?}", moon_rise);
+
+    let d = get_moon_rise_set(today, &geocode, SET);
+    let moon_set = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+    println!("Moon Set: {:?}", moon_set);
 }
 
-fn get_moon_rise(date: NaiveDate, geocode: Geocode) -> f64 {
+fn get_moon_rise_set(date: NaiveDate, geocode: &Geocode, mode: MoonCalcMode) -> f64 {
     const THRESHOLD_DELTA_D: f64 = 0.000005;
 
     let mut delta_d = 0.0;
@@ -55,21 +65,24 @@ fn get_moon_rise(date: NaiveDate, geocode: Geocode) -> f64 {
         let moon_parallax = get_moon_parallax(tmp_datetime);
 
         let moon_equatorial = ecliptic2equatorial(get_moon_ecliptic(tmp_datetime), ecliptic_tilt_angle(datetime_hms0));
-        println!("a: {}", moon_equatorial.longitude);
-        println!("d: {}", moon_equatorial.latitude);
+        // println!("a: {}", moon_equatorial.longitude);
+        // println!("d: {}", moon_equatorial.latitude);
         let k = -R + moon_parallax;
-        println!("k: {}", k);
+        // println!("k: {}", k);
         let cos_tk = (deg2rad(k).sin() - deg2rad(moon_equatorial.latitude).sin() * deg2rad(geocode.latitude).sin())
             / (deg2rad(moon_equatorial.latitude).cos() * deg2rad(geocode.latitude).cos());
-        println!("cos_tk: {}", cos_tk);
-        let tk = -rad2deg(cos_tk.acos());
-        println!("tk: {}", tk);
+        // println!("cos_tk: {}", cos_tk);
+        let tk = rad2deg(cos_tk.acos()) * match mode {
+            RISE => -1.0,
+            SET => 1.0
+        };
+        // println!("tk: {}", tk);
         let t = get_sidereal_time(datetime_hms0) + 360.9856474 * d + geocode.longitude - moon_equatorial.longitude;
-        println!("t: {}", t);
+        // println!("t: {}", t);
         delta_d = adjust180abs(tk - t) / 347.8;
-        println!("delta_d: {}", delta_d);
-        println!("d: {}", d);
-        println!("======================");
+        // println!("delta_d: {}", delta_d);
+        // println!("d: {}", d);
+        // println!("======================");
         if delta_d.abs() < THRESHOLD_DELTA_D {
             break;
         }
@@ -349,7 +362,7 @@ fn adjust0to360(deg: f64) -> f64 {
  * -180 <= x <= 180 に修正する
  */
 fn adjust180abs(deg: f64) -> f64 {
-    let mut result= deg;
+    let mut result = deg;
     loop {
         if result > 180.0 {
             result -= 360.0;
