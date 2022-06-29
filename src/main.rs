@@ -48,6 +48,34 @@ fn main() {
     let d = get_moon_rise_set(today, &geocode, SET);
     let moon_set = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
     println!("Moon Set: {:?}", moon_set);
+
+    println!("Moon Age: {}", get_moon_age(today));
+}
+
+fn get_moon_age(date: NaiveDate) -> f64 {
+    const THRESHOLD_DELTA_LAMBDA: f64 = 0.05;
+    let datetime = date.and_hms(12, 0, 0);
+    let t = datetime.timestamp() as f64;
+
+    let mut tn = t;
+    let mut gn: f64;
+    loop {
+        let lm = get_moon_longitude(Utc.timestamp(tn as i64, 0).naive_utc());
+        let ls = get_sun_longitude(Utc.timestamp(tn as i64, 0).naive_utc());
+        //println!("lm: {}", lm);
+        //println!("ls: {}", ls);
+        let delta_l = adjust0to360(lm - ls);
+        //println!("delta_l: {}", delta_l);
+        gn = delta_l / 12.1908;
+        //println!("gn: {}", gn);
+
+        tn = tn - gn * 86400.0;
+        //println!("tn: {:?}", Utc.timestamp(tn as i64, 0));
+
+        if delta_l < THRESHOLD_DELTA_LAMBDA {
+            return (t - tn) / 86400.0;
+        }
+    }
 }
 
 fn get_moon_rise_set(date: NaiveDate, geocode: &Geocode, mode: MoonCalcMode) -> f64 {
