@@ -306,6 +306,35 @@ fn get_moon_parallax(datetime: NaiveDateTime) -> f64 {
 }
 
 /**
+ * 太陽の黄経の近似計算
+ */
+fn get_sun_longitude(datetime: NaiveDateTime) -> f64 {
+    let t = j2000year(datetime);
+    let l = 280.4603 + 360.00769 * t
+        + (1.9146 - 0.00005 * t) * deg2rad(357.538 + 359.991 * t).sin()
+        + 0.0200 * deg2rad(355.05 + 719.981 * t).sin()
+        + 0.0048 * deg2rad(234.95 + 19.341 * t).sin()
+        + 0.0020 * deg2rad(247.1 + 329.64 * t).sin()
+        + 0.0018 * deg2rad(297.8 + 4452.67 * t).sin()
+        + 0.0018 * deg2rad(251.3 + 0.20 * t).sin()
+        + 0.0015 * deg2rad(343.2 + 450.37 * t).sin()
+        + 0.0013 * deg2rad(81.4 + 225.18 * t).sin()
+        + 0.0008 * deg2rad(132.5 + 659.29 * t).sin()
+        + 0.0007 * deg2rad(153.3 + 90.38 * t).sin()
+        + 0.0007 * deg2rad(206.8 + 30.35 * t).sin()
+        + 0.0006 * deg2rad(29.8 + 337.18 * t).sin()
+        + 0.0005 * deg2rad(207.4 + 1.50 * t).sin()
+        + 0.0005 * deg2rad(291.2 + 22.81 * t).sin()
+        + 0.0004 * deg2rad(234.9 + 315.56 * t).sin()
+        + 0.0004 * deg2rad(157.3 + 299.30 * t).sin()
+        + 0.0004 * deg2rad(21.1 + 720.02 * t).sin()
+        + 0.0003 * deg2rad(352.5 + 1079.97 * t).sin()
+        + 0.0003 * deg2rad(329.7 + 44.43 * t).sin();
+
+    adjust0to360(l)
+}
+
+/**
  * 黄道座標を赤道座標に変換
  */
 fn ecliptic2equatorial(ecliptic: Ecliptic, e: f64) -> Equatorial {
