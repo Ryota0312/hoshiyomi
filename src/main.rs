@@ -1,5 +1,4 @@
 use std::f32::consts::PI;
-use std::time::SystemTime;
 use chrono::{Utc, TimeZone, Datelike, Timelike, NaiveDate, NaiveDateTime};
 use crate::MoonCalcMode::{RISE, SET};
 
