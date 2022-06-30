@@ -53,11 +53,12 @@ impl MoonApi for MyMoonApi {
     async fn moon_info(&self, request: Request<MoonInfoRequest>) -> Result<Response<MoonInfoResponse>, Status> {
         println!("Got a request: {:?}", request);
 
-        let sec = request.into_inner().date.unwrap().seconds;
+        let request = request.into_inner();
+        let sec = request.date.unwrap().seconds;
         let date = Utc.timestamp(sec, 0).date().naive_utc();
         let moon_age = get_moon_age(date);
-
-        let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
+        
+        let geocode = Geocode { longitude: request.longitude, latitude: request.latitude };
 
         let d = get_moon_rise_set(date, &geocode, RISE);
         let moon_rise_sec = date.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64;
