@@ -8,8 +8,6 @@ use moon::moon_api_server::{MoonApi, MoonApiServer};
 use moon::{MoonInfoRequest, MoonInfoResponse};
 
 pub mod moon {
-    // proto で定義した package 名を指定すると、自動生成した
-    // server, client のコードをインポートしてくれる
     tonic::include_proto!("moon");
 }
 
@@ -57,7 +55,7 @@ impl MoonApi for MyMoonApi {
         let sec = request.date.unwrap().seconds;
         let date = Utc.timestamp(sec, 0).date().naive_utc();
         let moon_age = get_moon_age(date);
-        
+
         let geocode = Geocode { longitude: request.longitude, latitude: request.latitude };
 
         let d = get_moon_rise_set(date, &geocode, RISE);
@@ -77,24 +75,6 @@ impl MoonApi for MyMoonApi {
         Ok(Response::new(response))
     }
 }
-
-// fn main() {
-//     let today = NaiveDate::from_ymd(2022, 6, 29);
-//
-//     println!("Local.datetime_from_str: {:?}", today);
-//     let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
-//     //let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
-//
-//     let d = get_moon_rise_set(today, &geocode, RISE);
-//     let moon_rise = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
-//     println!("Moon Rise: {:?}", moon_rise);
-//
-//     let d = get_moon_rise_set(today, &geocode, SET);
-//     let moon_set = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
-//     println!("Moon Set: {:?}", moon_set);
-//
-//     println!("Moon Age: {}", get_moon_age(today));
-// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
