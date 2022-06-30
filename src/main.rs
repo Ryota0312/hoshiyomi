@@ -1,6 +1,17 @@
 use std::f32::consts::PI;
-use chrono::{Utc, DateTime, TimeZone, Datelike, Timelike, Date, FixedOffset, NaiveDate, NaiveDateTime};
+use std::time::SystemTime;
+use chrono::{Utc, TimeZone, Datelike, Timelike, NaiveDate, NaiveDateTime};
 use crate::MoonCalcMode::{RISE, SET};
+
+use tonic::{transport::Server, Request, Response, Status};
+use moon::moon_api_server::{MoonApi, MoonApiServer};
+use moon::{MoonInfoRequest, MoonInfoResponse};
+
+pub mod moon {
+    // proto で定義した package 名を指定すると、自動生成した
+    // server, client のコードをインポートしてくれる
+    tonic::include_proto!("moon");
+}
 
 const ZONE_OFFSET: f64 = 9.0;
 const R: f64 = 0.585556;
@@ -34,22 +45,67 @@ enum MoonCalcMode {
     SET,
 }
 
-fn main() {
-    let today = NaiveDate::from_ymd(2022, 6, 20);
+#[derive(Debug, Default)]
+pub struct MyMoonApi {}
 
-    println!("Local.datetime_from_str: {:?}", today);
-    let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
-    //let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
+#[tonic::async_trait]
+impl MoonApi for MyMoonApi {
+    async fn moon_info(&self, request: Request<MoonInfoRequest>) -> Result<Response<MoonInfoResponse>, Status> {
+        println!("Got a request: {:?}", request);
 
-    let d = get_moon_rise_set(today, &geocode, RISE);
-    let moon_rise = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
-    println!("Moon Rise: {:?}", moon_rise);
+        let sec = request.into_inner().date.unwrap().seconds;
+        let date = Utc.timestamp(sec, 0).date().naive_utc();
+        let moon_age = get_moon_age(date);
 
-    let d = get_moon_rise_set(today, &geocode, SET);
-    let moon_set = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
-    println!("Moon Set: {:?}", moon_set);
+        let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
 
-    println!("Moon Age: {}", get_moon_age(today));
+        let d = get_moon_rise_set(date, &geocode, RISE);
+        let moon_rise_sec = date.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64;
+        let moon_rise = Some(prost_types::Timestamp { seconds: moon_rise_sec, nanos: 0 });
+
+        let d = get_moon_rise_set(date, &geocode, SET);
+        let moon_set_sec = date.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64;
+        let moon_set = Some(prost_types::Timestamp { seconds: moon_set_sec, nanos: 0 });
+
+        let response = moon::MoonInfoResponse {
+            moon_rise,
+            moon_set,
+            moon_age,
+        };
+
+        Ok(Response::new(response))
+    }
+}
+
+// fn main() {
+//     let today = NaiveDate::from_ymd(2022, 6, 29);
+//
+//     println!("Local.datetime_from_str: {:?}", today);
+//     let geocode = Geocode { longitude: 133.92, latitude: 34.54 };
+//     //let geocode = Geocode { longitude: 139.7447, latitude: 35.6544 };
+//
+//     let d = get_moon_rise_set(today, &geocode, RISE);
+//     let moon_rise = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+//     println!("Moon Rise: {:?}", moon_rise);
+//
+//     let d = get_moon_rise_set(today, &geocode, SET);
+//     let moon_set = Utc.timestamp(today.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0);
+//     println!("Moon Set: {:?}", moon_set);
+//
+//     println!("Moon Age: {}", get_moon_age(today));
+// }
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let addr = "[::1]:50051".parse()?;
+    let moon = MyMoonApi::default();
+
+    Server::builder()
+        .add_service(MoonApiServer::new(moon))
+        .serve(addr)
+        .await?;
+
+    Ok(())
 }
 
 fn get_moon_age(date: NaiveDate) -> f64 {
