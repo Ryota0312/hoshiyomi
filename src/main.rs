@@ -88,6 +88,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/**
+ * FIXME: 月齢が30をを超えて計算されることがあるのでミスがないか確認。ZONE＿OFFSETの考慮が必要？？
+ * 月齢の計算
+ */
 fn get_moon_age(date: NaiveDate) -> f64 {
     const THRESHOLD_DELTA_LAMBDA: f64 = 0.05;
     let datetime = date.and_hms(12, 0, 0);
