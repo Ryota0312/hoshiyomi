@@ -259,6 +259,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "hoshiyomi"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "prost",
+ "prost-types",
+ "tokio",
+ "tonic",
+ "tonic-build",
+]
+
+[[package]]
 name = "http"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -367,18 +379,6 @@ name = "itoa"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "112c678d4050afce233f4f2852bb2eb519230b3cf12f33585275537d7e41578d"
-
-[[package]]
-name = "koyomi"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "prost",
- "prost-types",
- "tokio",
- "tonic",
- "tonic-build",
-]
 
 [[package]]
 name = "lazy_static"
