@@ -89,7 +89,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /**
- * FIXME: 月齢が30をを超えて計算されることがあるのでミスがないか確認。ZONE＿OFFSETの考慮が必要？？
  * 月齢の計算
  */
 fn get_moon_age(date: NaiveDate) -> f64 {
@@ -100,19 +99,29 @@ fn get_moon_age(date: NaiveDate) -> f64 {
     let mut tn = t;
     let mut gn: f64;
     loop {
-        let lm = get_moon_longitude(Utc.timestamp(tn as i64, 0).naive_utc());
-        let ls = get_sun_longitude(Utc.timestamp(tn as i64, 0).naive_utc());
-        //println!("lm: {}", lm);
-        //println!("ls: {}", ls);
-        let delta_l = adjust0to360(lm - ls);
-        //println!("delta_l: {}", delta_l);
-        gn = delta_l / 12.1908;
-        //println!("gn: {}", gn);
+        let lm = get_moon_longitude(NaiveDateTime::from_timestamp(tn as i64, 0));
+        let ls = get_sun_longitude(NaiveDateTime::from_timestamp(tn as i64, 0));
+        // println!("lm: {}", lm);
+        // println!("ls: {}", ls);
+        let delta_l = lm - ls;
+
+        // FIXME?: 補正は1回目のみとしているが正しいか要確認。(1回目: delta_l=355.0, 2回目: delta_l=359.0(-1.0)みたいになるととんでもない値になる)
+        let adjusted_delta_l;
+        if t == tn {
+            adjusted_delta_l = adjust0to360(delta_l);
+        } else {
+            adjusted_delta_l = delta_l;
+        }
+
+        // println!("delta_l: {}", adjusted_delta_l);
+        gn = adjusted_delta_l / 12.1908;
+        // println!("gn: {}", gn);
 
         tn = tn - gn * 86400.0;
-        //println!("tn: {:?}", Utc.timestamp(tn as i64, 0));
+        // println!("tn: {:?}", Utc.timestamp(tn as i64, 0));
+        // println!("============================");
 
-        if delta_l < THRESHOLD_DELTA_LAMBDA {
+        if delta_l.abs() < THRESHOLD_DELTA_LAMBDA {
             return (t - tn) / 86400.0;
         }
     }
