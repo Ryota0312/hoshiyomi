@@ -10,7 +10,7 @@ $ cargo build --release
 
 2. Run
 ```shell
-$ cargo run
+$ cargo run -- serve
 ```
 
 3. Example request
@@ -18,4 +18,10 @@ $ cargo run
 $  grpcurl -plaintext -import-path ./proto -proto moon.proto \
 -d '{"date": "2022-07-17T00:00:00.000Z", "longitude": "133.833990", "latitude": "34.861972"}' \
 [::]:50051 moon.MoonApi/MoonInfo
+```
+
+## Command Line Mode
+Calc moon age at 12:00:00 on specified date.
+```shell
+$ cargo run -- calc --date "2023-12-31"
 ```
