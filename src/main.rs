@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 use chrono::{Utc, TimeZone, Datelike, Timelike, NaiveDate, NaiveDateTime};
 use crate::MoonCalcMode::{RISE, SET};
+use clap::Parser;
 
 use tonic::{transport::Server, Request, Response, Status};
 use moon::moon_api_server::{MoonApi, MoonApiServer};
@@ -75,8 +76,38 @@ impl MoonApi for MyMoonApi {
     }
 }
 
+#[derive(clap::Subcommand, Clone, Debug)]
+enum Mode {
+    Serve,
+    Calc {
+        #[arg(short, long)]
+        date: String
+    }
+}
+
+#[derive(clap::Parser)]
+#[command(name = "mode", author, version, about, long_about = None)]
+struct Cli {
+    #[clap(subcommand)]
+    mode: Mode,
+}
+
+fn main() {
+    let args = Cli::parse();
+
+    match args.mode {
+        Mode::Serve => {
+            serve().unwrap();
+        },
+        Mode::Calc { date } => {
+            let result = calc(NaiveDate::parse_from_str(&date, "%Y-%m-%d").unwrap());
+            println!("{:?}", result);
+        }
+    };
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn serve() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::0]:50051".parse()?;
     let moon = MyMoonApi::default();
 
@@ -86,6 +117,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     Ok(())
+}
+
+fn calc(date: NaiveDate) -> f64 {
+    let moon_age = get_moon_age(date);
+    return moon_age;
 }
 
 /**
