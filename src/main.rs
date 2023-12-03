@@ -1,11 +1,11 @@
-use std::f32::consts::PI;
-use chrono::{Utc, TimeZone, Datelike, Timelike, NaiveDate, NaiveDateTime};
 use crate::MoonCalcMode::{RISE, SET};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, TimeZone, Timelike, Utc};
 use clap::Parser;
+use std::f32::consts::PI;
 
-use tonic::{transport::Server, Request, Response, Status};
 use moon::moon_api_server::{MoonApi, MoonApiServer};
 use moon::{MoonInfoRequest, MoonInfoResponse};
+use tonic::{transport::Server, Request, Response, Status};
 
 pub mod moon {
     tonic::include_proto!("moon");
@@ -48,7 +48,10 @@ pub struct MyMoonApi {}
 
 #[tonic::async_trait]
 impl MoonApi for MyMoonApi {
-    async fn moon_info(&self, request: Request<MoonInfoRequest>) -> Result<Response<MoonInfoResponse>, Status> {
+    async fn moon_info(
+        &self,
+        request: Request<MoonInfoRequest>,
+    ) -> Result<Response<MoonInfoResponse>, Status> {
         println!("Got a request: {:?}", request);
 
         let request = request.into_inner();
@@ -56,15 +59,24 @@ impl MoonApi for MyMoonApi {
         let date = Utc.timestamp(sec, 0).date().naive_utc();
         let moon_age = get_moon_age(date);
 
-        let geocode = Geocode { longitude: request.longitude, latitude: request.latitude };
+        let geocode = Geocode {
+            longitude: request.longitude,
+            latitude: request.latitude,
+        };
 
         let d = get_moon_rise_set(date, &geocode, RISE);
         let moon_rise_sec = date.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64;
-        let moon_rise = Some(prost_types::Timestamp { seconds: moon_rise_sec, nanos: 0 });
+        let moon_rise = Some(prost_types::Timestamp {
+            seconds: moon_rise_sec,
+            nanos: 0,
+        });
 
         let d = get_moon_rise_set(date, &geocode, SET);
         let moon_set_sec = date.and_hms(0, 0, 0).timestamp() + (60.0 * 60.0 * 24.0 * d) as i64;
-        let moon_set = Some(prost_types::Timestamp { seconds: moon_set_sec, nanos: 0 });
+        let moon_set = Some(prost_types::Timestamp {
+            seconds: moon_set_sec,
+            nanos: 0,
+        });
 
         let response = moon::MoonInfoResponse {
             moon_rise,
@@ -81,8 +93,8 @@ enum Mode {
     Serve,
     Calc {
         #[arg(short, long)]
-        date: String
-    }
+        date: String,
+    },
 }
 
 #[derive(clap::Parser)]
@@ -98,7 +110,7 @@ fn main() {
     match args.mode {
         Mode::Serve => {
             serve().unwrap();
-        },
+        }
         Mode::Calc { date } => {
             let result = calc(NaiveDate::parse_from_str(&date, "%Y-%m-%d").unwrap());
             println!("{:?}", result);
@@ -173,24 +185,35 @@ fn get_moon_rise_set(date: NaiveDate, geocode: &Geocode, mode: MoonCalcMode) -> 
 
     loop {
         d += delta_d;
-        let tmp_datetime = Utc.timestamp(datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64, 0).naive_utc();
+        let tmp_datetime = Utc
+            .timestamp(
+                datetime_hms0.timestamp() + (60.0 * 60.0 * 24.0 * d) as i64,
+                0,
+            )
+            .naive_utc();
 
         let moon_parallax = get_moon_parallax(tmp_datetime);
 
-        let moon_equatorial = ecliptic2equatorial(get_moon_ecliptic(tmp_datetime), ecliptic_tilt_angle(datetime_hms0));
+        let moon_equatorial = ecliptic2equatorial(
+            get_moon_ecliptic(tmp_datetime),
+            ecliptic_tilt_angle(datetime_hms0),
+        );
         // println!("a: {}", moon_equatorial.longitude);
         // println!("d: {}", moon_equatorial.latitude);
         let k = -R + moon_parallax;
         // println!("k: {}", k);
-        let cos_tk = (deg2rad(k).sin() - deg2rad(moon_equatorial.latitude).sin() * deg2rad(geocode.latitude).sin())
+        let cos_tk = (deg2rad(k).sin()
+            - deg2rad(moon_equatorial.latitude).sin() * deg2rad(geocode.latitude).sin())
             / (deg2rad(moon_equatorial.latitude).cos() * deg2rad(geocode.latitude).cos());
         // println!("cos_tk: {}", cos_tk);
-        let tk = rad2deg(cos_tk.acos()) * match mode {
-            RISE => -1.0,
-            SET => 1.0
-        };
+        let tk = rad2deg(cos_tk.acos())
+            * match mode {
+                RISE => -1.0,
+                SET => 1.0,
+            };
         // println!("tk: {}", tk);
-        let t = get_sidereal_time(datetime_hms0) + 360.9856474 * d + geocode.longitude - moon_equatorial.longitude;
+        let t = get_sidereal_time(datetime_hms0) + 360.9856474 * d + geocode.longitude
+            - moon_equatorial.longitude;
         // println!("t: {}", t);
         delta_d = adjust180abs(tk - t) / 347.8;
         // println!("delta_d: {}", delta_d);
@@ -255,7 +278,10 @@ fn j2000year(datetime: NaiveDateTime) -> f64 {
  * 月の黄道座標
  */
 fn get_moon_ecliptic(datetime: NaiveDateTime) -> Ecliptic {
-    Ecliptic { longitude: get_moon_longitude(datetime), latitude: get_moon_latitude(datetime) }
+    Ecliptic {
+        longitude: get_moon_longitude(datetime),
+        latitude: get_moon_latitude(datetime),
+    }
 }
 
 /**
@@ -423,7 +449,8 @@ fn get_moon_parallax(datetime: NaiveDateTime) -> f64 {
  */
 fn get_sun_longitude(datetime: NaiveDateTime) -> f64 {
     let t = j2000year(datetime);
-    let l = 280.4603 + 360.00769 * t
+    let l = 280.4603
+        + 360.00769 * t
         + (1.9146 - 0.00005 * t) * deg2rad(357.538 + 359.991 * t).sin()
         + 0.0200 * deg2rad(355.05 + 719.981 * t).sin()
         + 0.0048 * deg2rad(234.95 + 19.341 * t).sin()
@@ -452,8 +479,10 @@ fn get_sun_longitude(datetime: NaiveDateTime) -> f64 {
  */
 fn ecliptic2equatorial(ecliptic: Ecliptic, e: f64) -> Equatorial {
     let u = deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).cos();
-    let v = -deg2rad(ecliptic.latitude).sin() * deg2rad(e).sin() + deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).sin() * deg2rad(e).cos();
-    let w = deg2rad(ecliptic.latitude).sin() * deg2rad(e).cos() + deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).sin() * deg2rad(e).sin();
+    let v = -deg2rad(ecliptic.latitude).sin() * deg2rad(e).sin()
+        + deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).sin() * deg2rad(e).cos();
+    let w = deg2rad(ecliptic.latitude).sin() * deg2rad(e).cos()
+        + deg2rad(ecliptic.latitude).cos() * deg2rad(ecliptic.longitude).sin() * deg2rad(e).sin();
 
     let a;
     if u < 0.0 {
@@ -462,7 +491,10 @@ fn ecliptic2equatorial(ecliptic: Ecliptic, e: f64) -> Equatorial {
         a = adjust0to360(rad2deg((v / u).atan()));
     }
     let d = rad2deg((w / (u.powi(2) + v.powi(2)).sqrt()).atan());
-    Equatorial { longitude: a, latitude: d }
+    Equatorial {
+        longitude: a,
+        latitude: d,
+    }
 }
 
 /**
